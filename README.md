@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Página escolar
 
-## Getting Started
+Sitio web institucional con panel de control y gestión, hecho con Next.js (App Router), TypeScript y Tailwind CSS.
 
-First, run the development server:
+## Comenzar
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir http://localhost:3000 (sitio) y http://localhost:3000/panel (panel de control).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Estructura
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (sitio)/            # PÁGINA PRINCIPAL (pública) — el grupo no aparece en la URL
+│   │   ├── layout.tsx      # Header + Footer del sitio
+│   │   ├── page.tsx        # /
+│   │   ├── institucional/  # /institucional
+│   │   ├── niveles/        # /niveles
+│   │   ├── noticias/       # /noticias y /noticias/[slug]
+│   │   ├── eventos/        # /eventos
+│   │   ├── admisiones/     # /admisiones
+│   │   └── contacto/       # /contacto
+│   ├── (auth)/
+│   │   └── login/          # /login
+│   ├── panel/              # PANEL DE CONTROL (privado) — /panel/...
+│   │   ├── layout.tsx      # Sidebar + header del panel
+│   │   ├── page.tsx        # /panel (resumen)
+│   │   ├── noticias/       # listado, nueva, [id] (editar)
+│   │   ├── eventos/
+│   │   ├── alumnos/
+│   │   ├── docentes/
+│   │   ├── cursos/
+│   │   ├── mensajes/
+│   │   ├── usuarios/
+│   │   └── configuracion/
+│   ├── layout.tsx          # Layout raíz (html/body, fuentes, metadata)
+│   └── not-found.tsx
+├── components/
+│   ├── ui/                 # Componentes genéricos compartidos (Button, ...)
+│   ├── sitio/              # Componentes exclusivos de la página principal
+│   └── panel/              # Componentes exclusivos del panel de control
+├── actions/
+│   ├── sitio/              # Server Actions públicas (ej. formulario de contacto)
+│   └── panel/              # Server Actions del panel (CRUD, login)
+├── config/                 # Datos del sitio y menús de navegación
+├── hooks/                  # Hooks de React reutilizables
+├── lib/
+│   ├── auth/               # Sesión y autenticación
+│   ├── db/                 # Conexión / cliente de base de datos
+│   └── utils.ts
+├── types/                  # Tipos TypeScript compartidos
+└── proxy.ts                # Protege /panel: redirige a /login sin sesión
+public/images/{sitio,panel}
+```
 
-## Learn More
+## Convenciones
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Todo lo público va en `app/(sitio)` y `components/sitio`.
+- Todo lo de gestión va en `app/panel` y `components/panel`.
+- Lo compartido por ambos va en `components/ui`, `lib`, `types` y `config`.
+- `proxy.ts` hace solo un chequeo optimista de la cookie; la autorización real debe verificarse en el servidor (Server Components / Server Actions).
