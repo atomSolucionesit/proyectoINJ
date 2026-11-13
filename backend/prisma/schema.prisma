@@ -1,0 +1,361 @@
+// Base de datos del Instituto Niño Jesús (MySQL).
+// Después de cambiar este archivo: `npm run db:migrate` (crea la migración y regenera el cliente).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Rol {
+  admin
+  profesor
+  alumno
+  padre
+  bibliotecaria
+  preceptor
+}
+
+/// Mujer o varón: el panel muestra "madre"/"padre", "alumna"/"alumno".
+enum Sexo {
+  F
+  M
+}
+
+/// biblioteca: publicado para todos (lo suben profesores). impresion: archivo personal solo para imprimir.
+enum Visibilidad {
+  biblioteca
+  impresion
+}
+
+/// Cómo se pagó una impresión: en efectivo se paga al retirarla en la biblioteca.
+enum MetodoPago {
+  efectivo
+  mercadopago
+}
+
+enum EstadoReserva {
+  pendiente_pago
+  pagada
+  lista
+  retirada
+  cancelada
+}
+
+model Usuario {
+  id              String   @id @default(uuid())
+  /// Nombre y apellido completos: junto con la contraseña es lo que se usa para ingresar.
+  nombre          String   @db.VarChar(120)
+  /// El nombre sin mayúsculas, tildes ni espacios de más. No se repite: identifica la cuenta al ingresar.
+  nombreClave     String?  @unique @map("nombre_clave") @db.VarChar(120)
+  email           String   @unique @db.VarChar(191)
+  passwordHash    String   @map("password_hash")
+  /// La contraseña cifrada (AES-256-GCM con PASSWORD_KEY) para que el administrador la pueda ver. Se ingresa con el hash.
+  passwordCifrada String?  @map("password_cifrada") @db.VarChar(255)
+  /// La cuenta universal del superadministrador: se crea con los datos de SUPERADMIN_* del .env y no se puede borrar.
+  esSuperadmin    Boolean  @default(false) @map("es_superadmin")
+  rol             Rol
+  dni             String?  @db.VarChar(20)
+  /// Solo dígitos, con característica (ej. "3772412345").
+  telefono        String?  @db.VarChar(20)
+  sexo            Sexo?
+  /// Para alumnos: el curso donde está anotado.
+  cursoId         String?  @map("curso_id")
+  /// Para alumnos: el padre/madre que puede ver su ficha.
+  padreId         String?  @map("padre_id")
+  creadoEn        DateTime @default(now()) @map("creado_en")
+
+  padre                 Usuario?             @relation("PadreHijos", fields: [padreId], references: [id], onDelete: SetNull)
+  hijos                 Usuario[]            @relation("PadreHijos")
+  curso                 Curso?               @relation(fields: [cursoId], references: [id], onDelete: SetNull)
+  /// Para profesores: las materias que da en cada curso.
+  materias              DocenteCurso[]
+  /// Para alumnos: su asistencia.
+  asistencias           Asistencia[]         @relation("AsistenciaAlumno")
+  /// Para profesores: las asistencias que tomó.
+  asistenciasTomadas    Asistencia[]         @relation("AsistenciaTomadaPor")
+  archivos              ArchivoBiblioteca[]
+  reservas              ReservaImpresion[]
+  noticias              Noticia[]
+  eventos               Evento[]
+  /// Para alumnos: positivos y negativos que les pusieron.
+  puntos                Punto[]              @relation("PuntoAlumno")
+  puntosPuestos         Punto[]              @relation("PuntoPuestoPor")
+  sanciones             Sancion?
+  asistenciaPersonal    AsistenciaPersonal[]
+  pagosCuotas           PagoCuota[]          @relation("PagoCuotaAlumno")
+  cuotasPagadas         PagoCuota[]          @relation("PagoCuotaPagadoPor")
+  telefonoCuotas        TelefonoCuota?
+  recordatorios         RecordatorioCuota[]  @relation("RecordatorioAlumno")
+  recordatoriosEnviados RecordatorioCuota[]  @relation("RecordatorioEnviadoPor")
+
+  @@map("usuarios")
+}
+
+model ArchivoBiblioteca {
+  id             String      @id @default(uuid())
+  nombre         String      @db.VarChar(200)
+  descripcion    String?     @db.Text
+  categoria      String      @db.VarChar(40)
+  visibilidad    Visibilidad
+  /// Nombre original del archivo (para la extensión al descargar).
+  nombreOriginal String      @map("nombre_original") @db.VarChar(255)
+  tipo           String      @db.VarChar(120)
+  tamano         Int
+  subidoPorId    String      @map("subido_por_id")
+  /// null = permanente. Pasada esta fecha la tarea de limpieza lo borra.
+  expiraEn       DateTime?   @map("expira_en")
+  creadoEn       DateTime    @default(now()) @map("creado_en")
+
+  subidoPor Usuario            @relation(fields: [subidoPorId], references: [id], onDelete: Cascade)
+  reservas  ReservaImpresion[]
+
+  @@index([visibilidad, expiraEn])
+  @@map("archivos_biblioteca")
+}
+
+model ReservaImpresion {
+  id            String        @id @default(uuid())
+  /// Queda en null si el archivo se borra; el nombre se guarda aparte para el historial.
+  archivoId     String?       @map("archivo_id")
+  archivoNombre String        @map("archivo_nombre") @db.VarChar(200)
+  paginas       Int
+  copias        Int
+  color         Boolean
+  dobleFaz      Boolean       @map("doble_faz")
+  anillado      Boolean
+  notas         String?       @db.Text
+  /// En pesos, calculado en el servidor.
+  total         Int
+  estado        EstadoReserva @default(pendiente_pago)
+  codigoRetiro  String        @unique @map("codigo_retiro") @db.VarChar(20)
+  solicitanteId String        @map("solicitante_id")
+  pagoId        String?       @map("pago_id")
+  metodoPago    MetodoPago?   @map("metodo_pago")
+  creadoEn      DateTime      @default(now()) @map("creado_en")
+  pagadoEn      DateTime?     @map("pagado_en")
+
+  archivo     ArchivoBiblioteca? @relation(fields: [archivoId], references: [id], onDelete: SetNull)
+  solicitante Usuario            @relation(fields: [solicitanteId], references: [id], onDelete: Cascade)
+
+  @@index([estado])
+  @@map("reservas_impresion")
+}
+
+/// Curso de secundaria: 1° a 6° Año, con su división (A, B…).
+model Curso {
+  id       String   @id @default(uuid())
+  anio     Int      @db.TinyInt
+  division String   @db.VarChar(10)
+  creadoEn DateTime @default(now()) @map("creado_en")
+
+  alumnos     Usuario[]
+  docentes    DocenteCurso[]
+  asistencias Asistencia[]
+  puntos      Punto[]
+
+  @@unique([anio, division])
+  @@map("cursos")
+}
+
+/// Qué profesor da cada materia en un curso. Cada materia de un curso tiene un solo profesor.
+model DocenteCurso {
+  id         String @id @default(uuid())
+  cursoId    String @map("curso_id")
+  profesorId String @map("profesor_id")
+  materia    String @db.VarChar(80)
+
+  curso    Curso   @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  profesor Usuario @relation(fields: [profesorId], references: [id], onDelete: Cascade)
+
+  @@unique([cursoId, materia])
+  @@map("docentes_curso")
+}
+
+enum EstadoAsistencia {
+  presente
+  tarde
+  ausente
+}
+
+/// Asistencia de un alumno en una materia de su curso, un día.
+model Asistencia {
+  id            String           @id @default(uuid())
+  cursoId       String           @map("curso_id")
+  materia       String           @db.VarChar(80)
+  fecha         DateTime         @db.Date
+  alumnoId      String           @map("alumno_id")
+  estado        EstadoAsistencia
+  tomadaPorId   String?          @map("tomada_por_id")
+  actualizadoEn DateTime         @updatedAt @map("actualizado_en")
+
+  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  alumno    Usuario  @relation("AsistenciaAlumno", fields: [alumnoId], references: [id], onDelete: Cascade)
+  tomadaPor Usuario? @relation("AsistenciaTomadaPor", fields: [tomadaPorId], references: [id], onDelete: SetNull)
+
+  @@unique([cursoId, materia, fecha, alumnoId])
+  @@map("asistencias")
+}
+
+/// Noticia del sitio. Mientras no esté publicada solo se ve en el panel.
+model Noticia {
+  id            String    @id @default(uuid())
+  /// Parte de la dirección (/noticias/<slug>). Se arma con el título al crearla y no cambia, para no romper enlaces.
+  slug          String    @unique @db.VarChar(120)
+  titulo        String    @db.VarChar(160)
+  categoria     String    @db.VarChar(40)
+  resumen       String    @db.VarChar(400)
+  contenido     String    @db.Text
+  /// "/images/…" (una imagen del sitio) o el nombre del archivo subido (carpeta UPLOAD_DIR/noticias).
+  imagen        String?   @db.VarChar(255)
+  publicada     Boolean   @default(false)
+  publicadaEn   DateTime? @map("publicada_en")
+  autorId       String?   @map("autor_id")
+  creadoEn      DateTime  @default(now()) @map("creado_en")
+  actualizadoEn DateTime  @updatedAt @map("actualizado_en")
+
+  autor Usuario? @relation(fields: [autorId], references: [id], onDelete: SetNull)
+
+  @@index([publicada, publicadaEn])
+  @@map("noticias")
+}
+
+/// Acto o actividad del calendario escolar.
+model Evento {
+  id          String   @id @default(uuid())
+  titulo      String   @db.VarChar(160)
+  fecha       DateTime @db.Date
+  /// Texto libre: "19:30 hs", "09:00 a 16:00 hs".
+  horario     String?  @db.VarChar(40)
+  lugar       String?  @db.VarChar(160)
+  categoria   String   @db.VarChar(40)
+  descripcion String?  @db.Text
+  creadoPorId String?  @map("creado_por_id")
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  creadoPor Usuario? @relation(fields: [creadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([fecha])
+  @@map("eventos")
+}
+
+/**
+ * ---------- Positivos, negativos y amonestaciones ----------
+ */
+
+enum TipoPunto {
+  positivo
+  negativo
+}
+
+/// Positivo o negativo que un profesor le pone a un alumno en su materia.
+model Punto {
+  id          String    @id @default(uuid())
+  cursoId     String    @map("curso_id")
+  materia     String    @db.VarChar(80)
+  alumnoId    String    @map("alumno_id")
+  tipo        TipoPunto
+  puestoPorId String?   @map("puesto_por_id")
+  creadoEn    DateTime  @default(now()) @map("creado_en")
+
+  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  alumno    Usuario  @relation("PuntoAlumno", fields: [alumnoId], references: [id], onDelete: Cascade)
+  puestoPor Usuario? @relation("PuntoPuestoPor", fields: [puestoPorId], references: [id], onDelete: SetNull)
+
+  @@index([cursoId, materia])
+  @@map("puntos")
+}
+
+/// Amonestaciones y apercibimientos de un alumno (los carga el preceptor).
+model Sancion {
+  alumnoId        String @id @map("alumno_id")
+  amonestaciones  Int    @default(0)
+  apercibimientos Int    @default(0)
+
+  alumno Usuario @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+  @@map("sanciones")
+}
+
+/// Asistencia de profesores y preceptores (la toma el administrador).
+model AsistenciaPersonal {
+  id        String           @id @default(uuid())
+  personaId String           @map("persona_id")
+  fecha     DateTime         @db.Date
+  estado    EstadoAsistencia
+
+  persona Usuario @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  @@unique([personaId, fecha])
+  @@map("asistencia_personal")
+}
+
+/**
+ * ---------- Cuotas ----------
+ */
+
+enum MetodoPagoCuota {
+  mercadopago
+  tarjeta
+}
+
+/// Valor de la cuota y día de vencimiento. Hay una sola fila (id = 1); la cambia el administrador.
+model ConfigCuotas {
+  id             Int @id @default(1)
+  monto          Int
+  diaVencimiento Int @map("dia_vencimiento") @db.TinyInt
+
+  @@map("config_cuotas")
+}
+
+/// Cuota pagada. Guarda lo que valía al pagarse: si después cambia el valor, esta no cambia.
+model PagoCuota {
+  id          String          @id @default(uuid())
+  alumnoId    String          @map("alumno_id")
+  /// "2026-11"
+  mes         String          @db.VarChar(7)
+  monto       Int
+  metodo      MetodoPagoCuota
+  pagadoPorId String?         @map("pagado_por_id")
+  pagadoEn    DateTime        @default(now()) @map("pagado_en")
+  /// El administrador ya vio el aviso de este pago.
+  visto       Boolean         @default(false)
+
+  alumno    Usuario  @relation("PagoCuotaAlumno", fields: [alumnoId], references: [id], onDelete: Cascade)
+  pagadoPor Usuario? @relation("PagoCuotaPagadoPor", fields: [pagadoPorId], references: [id], onDelete: SetNull)
+
+  @@unique([alumnoId, mes])
+  @@index([visto])
+  @@map("pagos_cuotas")
+}
+
+/// WhatsApp de la familia para los recordatorios de pago (si no hay, se usa el del tutor).
+model TelefonoCuota {
+  alumnoId String @id @map("alumno_id")
+  telefono String @db.VarChar(20)
+
+  alumno Usuario @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+  @@map("telefonos_cuotas")
+}
+
+/// Recordatorio de deuda que el administrador le mandó a la familia por WhatsApp.
+model RecordatorioCuota {
+  id           String   @id @default(uuid())
+  alumnoId     String   @map("alumno_id")
+  enviadoPorId String?  @map("enviado_por_id")
+  enviadoEn    DateTime @default(now()) @map("enviado_en")
+  /// Meses reclamados, separados por coma: "2026-09,2026-10".
+  meses        String   @db.VarChar(200)
+  monto        Int
+
+  alumno     Usuario  @relation("RecordatorioAlumno", fields: [alumnoId], references: [id], onDelete: Cascade)
+  enviadoPor Usuario? @relation("RecordatorioEnviadoPor", fields: [enviadoPorId], references: [id], onDelete: SetNull)
+
+  @@index([alumnoId])
+  @@map("recordatorios_cuotas")
+}
