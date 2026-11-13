@@ -1,0 +1,29 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { permisoParaRuta, puede } from "@/lib/auth/permisos";
+
+// Si no hay una sesión válida (firmada y sin vencer), redirige al login.
+// Si el rol no tiene acceso a la sección, vuelve al inicio del panel.
+// Las Server Actions vuelven a chequear los permisos por su cuenta.
+export function proxy(request: NextRequest) {
+  const sesion = verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value);
+  const { pathname } = request.nextUrl;
+
+  if (!sesion) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  const permiso = permisoParaRuta(pathname);
+  if (permiso && !puede(sesion.rol, permiso)) {
+    return NextResponse.redirect(new URL("/panel?denegado=1", request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: "/panel/:path*",
+};
