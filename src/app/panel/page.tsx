@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
+import { Resumen } from "./Resumen";
 
 export const metadata: Metadata = { title: "Resumen" };
 
+// El contenido se arma en el navegador con los datos de la API (ver panel/layout.tsx).
+export const instant = false;
+
 export default function PanelPage() {
-  return (
-    <section>
-      <h1 className="text-2xl font-bold">Resumen</h1>
-      <p className="mt-2 text-slate-600">Estadísticas y accesos rápidos de la gestión.</p>
-    </section>
-  );
+  return <Resumen />;
 }

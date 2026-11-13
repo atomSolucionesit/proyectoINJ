@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
+import { EncabezadoPagina, EstadoVacio } from "@/components/panel/ui";
 
 export const metadata: Metadata = { title: "Configuración" };
+
+// El contenido se arma en el navegador con los datos de la API (ver panel/layout.tsx).
+export const instant = false;
 
 export default function ConfiguracionPage() {
   return (
     <section>
-      <h1 className="text-2xl font-bold">Configuración</h1>
-      <p className="mt-2 text-slate-600">Datos generales del sitio.</p>
+      <EncabezadoPagina
+        titulo="Configuración"
+        descripcion="Datos generales del sitio."
+      />
+      <EstadoVacio
+        icono="configuracion"
+        titulo="Configuración en preparación"
+        descripcion="Pronto vas a poder editar los datos de contacto, redes y horarios del sitio."
+      />
     </section>
   );
 }

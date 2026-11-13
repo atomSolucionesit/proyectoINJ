@@ -1,11 +1,4 @@
-export type Rol = "admin" | "directivo" | "docente";
-
-export type Usuario = {
-  id: string;
-  nombre: string;
-  email: string;
-  rol: Rol;
-};
+export type { Rol } from "@/lib/auth/permisos";
 
 export type Noticia = {
   id: string;

@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+backend
+.env*
+*.tsbuildinfo
+next-env.d.ts
+respaldo-*.tar.gz
+Dockerfile
+.dockerignore

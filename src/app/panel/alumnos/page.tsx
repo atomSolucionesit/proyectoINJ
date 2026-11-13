@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
+import { Alumnos } from "./Alumnos";
 
 export const metadata: Metadata = { title: "Alumnos" };
+
+// El contenido se arma en el navegador con los datos de la API (ver panel/layout.tsx).
+export const instant = false;
 
 export default function AlumnosPage() {
   return (
     <section>
-      <h1 className="text-2xl font-bold">Alumnos</h1>
-      <p className="mt-2 text-slate-600">Gestión de alumnos.</p>
+      <Alumnos />
     </section>
   );
 }

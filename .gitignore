@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# respaldo local del backend (Neon / Blob / Mercado Pago)
+respaldo-*.tar.gz

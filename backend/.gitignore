@@ -1,0 +1,6 @@
+node_modules
+dist
+uploads
+src/generated
+# Variables de entorno (tienen claves)
+.env

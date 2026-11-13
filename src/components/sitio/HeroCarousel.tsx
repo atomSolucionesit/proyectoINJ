@@ -212,6 +212,7 @@ export function HeroCarousel() {
                     src="/images/logo.png"
                     alt="Escudo Oficial Instituto Niño Jesús I-9"
                     fill
+                    sizes="144px"
                     className="object-contain"
                     priority
                   />

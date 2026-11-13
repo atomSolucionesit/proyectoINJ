@@ -1,13 +1,29 @@
 import Link from "next/link";
 import Image from "next/image";
-import { siteConfig } from "@/config/site";
+import { Suspense } from "react";
 import { HeroCarousel } from "@/components/sitio/HeroCarousel";
+import { AvisoContenido, EsqueletoTarjetas, TarjetaNoticia } from "@/components/sitio/Contenido";
+import { leerNoticias } from "@/lib/contenido";
 
 export const metadata = {
   title: "Inicio | Instituto Niño Jesús I-9 - Paso de los Libres",
   description:
     "Sitio oficial del Instituto Niño Jesús I-9 de Paso de los Libres, Corrientes. Educación integral con valores en niveles Inicial, Primario y Secundario.",
 };
+
+async function UltimasNoticias() {
+  const noticias = await leerNoticias(3);
+  if (!noticias?.length) {
+    return <AvisoContenido titulo="Pronto habrá novedades" texto="Seguí las actividades del instituto en la sección Noticias." />;
+  }
+  return (
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      {noticias.map((noticia) => (
+        <TarjetaNoticia key={noticia.id} noticia={noticia} />
+      ))}
+    </div>
+  );
+}
 
 export default function InicioPage() {
   return (
@@ -64,6 +80,7 @@ export default function InicioPage() {
                   src="/images/fachada-instituto.png"
                   alt="Fachada Instituto Niño Jesús I-9"
                   fill
+                  sizes="(min-width: 448px) 448px, 100vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-950/90 via-blue-950/30 to-transparent" />
@@ -75,6 +92,7 @@ export default function InicioPage() {
                       src="/images/logo.png"
                       alt="Escudo Instituto Niño Jesús"
                       fill
+                      sizes="48px"
                       className="object-contain"
                     />
                   </div>
@@ -387,102 +405,10 @@ export default function InicioPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
-            <article className="group rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col">
-              <div className="relative h-48 w-full bg-slate-200 overflow-hidden">
-                <Image
-                  src="/images/hero-edificio.jpg"
-                  alt="Inscripciones Abiertas"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 rounded-full bg-blue-900/90 text-white text-[11px] font-bold px-3 py-1 backdrop-blur">
-                  Institucional
-                </span>
-              </div>
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <time className="text-xs text-slate-500 font-semibold">Ciclo Lectivo 2026</time>
-                  <h3 className="text-lg font-bold text-blue-950 mt-1 mb-2 group-hover:text-blue-700 transition-colors">
-                    Apertura de Admisiones e Inscripciones
-                  </h3>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    Informamos a las familias interesadas que ya se encuentra habilitado el proceso de solicitud de vacantes para los niveles Inicial, Primario y Secundario.
-                  </p>
-                </div>
-                <Link
-                  href="/admisiones"
-                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900"
-                >
-                  Conocer requisitos y aranceles →
-                </Link>
-              </div>
-            </article>
-
-            <article className="group rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col">
-              <div className="relative h-48 w-full bg-slate-200 overflow-hidden">
-                <Image
-                  src="/images/hero-ciencia.jpg"
-                  alt="Muestra de Ciencia y Tecnología"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 rounded-full bg-amber-500 text-blue-950 text-[11px] font-bold px-3 py-1">
-                  Académico
-                </span>
-              </div>
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <time className="text-xs text-slate-500 font-semibold">Proyectos Escolares</time>
-                  <h3 className="text-lg font-bold text-blue-950 mt-1 mb-2 group-hover:text-blue-700 transition-colors">
-                    Feria Anual de Ciencias y Tecnología
-                  </h3>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    Estudiantes de todos los cursos expusieron investigaciones de física, química, robótica y proyectos sustentables para Paso de los Libres.
-                  </p>
-                </div>
-                <Link
-                  href="/noticias"
-                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900"
-                >
-                  Leer crónica completa →
-                </Link>
-              </div>
-            </article>
-
-            <article className="group rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition-all flex flex-col">
-              <div className="relative h-48 w-full bg-slate-200 overflow-hidden">
-                <Image
-                  src="/images/hero-deportes.jpg"
-                  alt="Encuentro Deportivo"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 rounded-full bg-emerald-600 text-white text-[11px] font-bold px-3 py-1">
-                  Deportes
-                </span>
-              </div>
-              <div className="p-6 flex-1 flex flex-col justify-between">
-                <div>
-                  <time className="text-xs text-slate-500 font-semibold">Comunidad</time>
-                  <h3 className="text-lg font-bold text-blue-950 mt-1 mb-2 group-hover:text-blue-700 transition-colors">
-                    Jornada Deportiva y de Convivencia Familiar
-                  </h3>
-                  <p className="text-slate-600 text-xs leading-relaxed">
-                    Un día colmado de juegos, torneos intercolegiales, mateada comunitaria y actividades al aire libre con padres y docentes.
-                  </p>
-                </div>
-                <Link
-                  href="/noticias"
-                  className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900"
-                >
-                  Ver galería de fotos →
-                </Link>
-              </div>
-            </article>
-
-          </div>
+          {/* Las 3 últimas noticias publicadas desde el panel */}
+          <Suspense fallback={<EsqueletoTarjetas className="grid grid-cols-1 gap-8 md:grid-cols-3" />}>
+            <UltimasNoticias />
+          </Suspense>
         </div>
       </section>
 

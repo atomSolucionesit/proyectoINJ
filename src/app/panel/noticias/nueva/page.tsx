@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
+import { EncabezadoPagina } from "@/components/panel/ui";
+import { FormNoticia } from "../FormNoticia";
 
 export const metadata: Metadata = { title: "Nueva noticia" };
 
+// El contenido se arma en el navegador con los datos de la API (ver panel/layout.tsx).
+export const instant = false;
+
 export default function NuevaNoticiaPage() {
   return (
-    <section>
-      <h1 className="text-2xl font-bold">Nueva noticia</h1>
-      <p className="mt-2 text-slate-600">Formulario de creación de noticia.</p>
+    <section className="mx-auto max-w-3xl">
+      <EncabezadoPagina titulo="Nueva noticia" descripcion="Escribila, agregale una foto y publicala en el sitio." />
+      <FormNoticia />
     </section>
   );
 }

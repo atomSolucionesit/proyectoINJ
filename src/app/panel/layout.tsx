@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { Sidebar } from "@/components/panel/Sidebar";
-import { PanelHeader } from "@/components/panel/PanelHeader";
+import { Suspense } from "react";
+import { EsqueletoPanel, PanelShell } from "@/components/panel/PanelShell";
 
 export const metadata: Metadata = {
   title: { default: "Panel", template: "%s | Panel" },
   robots: { index: false, follow: false },
 };
 
+// El panel se arma en el navegador (la sesión está en la pestaña y los datos vienen de la API): no se prerenderiza.
+export const instant = false;
+
 export default function PanelLayout({ children }: LayoutProps<"/panel">) {
   return (
-    <div className="flex flex-1 flex-col md:flex-row">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
-        <PanelHeader />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
+    <Suspense fallback={<EsqueletoPanel />}>
+      <PanelShell>{children}</PanelShell>
+    </Suspense>
   );
 }
