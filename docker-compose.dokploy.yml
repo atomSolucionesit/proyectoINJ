@@ -1,0 +1,71 @@
+# Deploy completo en Dokploy (proyecto tipo "Compose"): MySQL + API (NestJS) + sitio y panel (Next.js).
+# Cómo usarlo: ver DOKPLOY.md. Las variables ${...} se cargan en la pestaña "Environment" de Dokploy.
+# Los dominios se asignan en la pestaña "Domains": frontend → puerto 3000, backend → puerto 3001.
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: instituto
+      MYSQL_USER: inj
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Falta MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Falta MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql-datos:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u inj -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # Al arrancar aplica las migraciones pendientes (prisma migrate deploy) y crea/actualiza el superadministrador.
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: mysql://inj:${MYSQL_PASSWORD}@mysql:3306/instituto
+      # Dirección pública del sitio (para CORS), ej. https://institutoninojesus.com.ar
+      FRONTEND_URL: ${FRONTEND_URL:?Falta FRONTEND_URL}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET}
+      PASSWORD_KEY: ${PASSWORD_KEY:?Falta PASSWORD_KEY}
+      SESION_MINUTOS: ${SESION_MINUTOS:-60}
+      PASSWORD_INICIAL: ${PASSWORD_INICIAL:?Falta PASSWORD_INICIAL}
+      SUPERADMIN_NOMBRE: ${SUPERADMIN_NOMBRE:-Superadministrador INJ}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:?Falta SUPERADMIN_PASSWORD}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-superadmin@instituto.local}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      # Archivos de la biblioteca e imágenes de las noticias.
+      - uploads:/app/uploads
+    expose:
+      - "3001"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Dirección pública de la API (el dominio del backend), ej. https://api.institutoninojesus.com.ar
+        # Se pega en el código al compilar: si cambia, hay que volver a hacer deploy.
+        NEXT_PUBLIC_API_URL: ${API_URL:?Falta API_URL}
+        NEXT_PUBLIC_MODO_DEMO: "0"
+        # 1 = el login muestra los accesos rápidos de prueba (solo para una demo). En producción, 0.
+        NEXT_PUBLIC_MOSTRAR_CUENTAS_DEMO: ${MOSTRAR_CUENTAS_DEMO:-0}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    expose:
+      - "3000"
+
+volumes:
+  mysql-datos:
+  uploads:

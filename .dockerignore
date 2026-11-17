@@ -8,3 +8,19 @@ next-env.d.ts
 respaldo-*.tar.gz
 Dockerfile
 .dockerignore
+
+# Código del sistema de login anterior: sigue en el repo pero el panel no lo usa
+# e importa paquetes que no están instalados (@vercel/blob, @neondatabase/serverless),
+# así que rompería `next build`. Se deja fuera de la imagen.
+src/actions
+src/app/api
+src/lib/db
+src/lib/biblioteca
+src/lib/usuarios
+src/lib/auth/session.ts
+src/lib/auth/dal.ts
+src/lib/auth/password.ts
+src/components/panel/AvisoConfiguracion.tsx
+src/proxy.ts.viejo
+scripts
+vercel.json
